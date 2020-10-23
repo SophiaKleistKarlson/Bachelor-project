@@ -13,6 +13,7 @@ import cv2
 import glob
 import re
 import os
+import json
 
 path = "C:/Users/Sophia/Documents/Social Transmission Study/Analysis of drawings/"
 os.chdir(path)
@@ -53,7 +54,7 @@ print(files_orig)
 print(files_copy)
 
 # prepare panda to write logs
-columns = ['Condition', 'Chain', 'Generation', 'Subject_ID', 'Source_image', 'MSE'] # , 'SSIM' , 'master', 'copy', 'time', #
+columns = ['Subject_ID', 'Chain', 'Generation', 'Condition', 'Stim_ID', 'Source_image', 'MSE'] # , 'SSIM' , 'master', 'copy', 'time', #
 index = np.arange(0)
 DATA = pd.DataFrame(columns=columns, index = index)
 
@@ -82,10 +83,11 @@ for orig in files_orig:
             MSE = compare_images(original, contrast)#, SSIM
             
             # get id label
-            #id = #re.findall('cond_\d+_stim_\d+|tutorial\d+', copy)[0]
+            #id = re.findall('cond_\d+_stim_\d+|tutorial\d+', copy)[0]
             chain = re.findall('(\d+)/\d', COPY_path)[0]
             gen = re.findall('\d+/(\d+)', COPY_path)[0]
             condition = re.findall('cond_\d+|tutorial\d+', copy)[0]# if we don't have tutorials, then we can just say cond_(\d+) 
+            stim = re.findall('stim_(\d+)|tutorial\d+', copy)[0]
             
             # write output to pandas
             DATA = DATA.append({
@@ -93,6 +95,7 @@ for orig in files_orig:
                 'Chain': chain,
                 'Generation': gen,
                 'Condition': condition[5],# if no tutorials, drop the index in the end
+                'Stim_ID': stim,
                 'MSE': MSE
                 }, ignore_index=True)
 
