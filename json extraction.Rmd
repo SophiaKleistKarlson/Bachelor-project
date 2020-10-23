@@ -1,0 +1,102 @@
+---
+title: "Json extraction"
+author: "Sophia Kleist Karlson"
+date: "23 okt 2020"
+output: html_document
+---
+
+```{r}
+pacman::p_load(tidyverse, jsonlite, rjson, stringr, dplyr)
+
+setwd("~/Social Transmission Study/Analysis of drawings/")
+
+RStudio.Version() #why this?
+
+```
+
+
+```{r}
+#test <- fromJSON(file = "data/transmission_5CO150x0gvsv_36kQbsUHMv0I/0/0/session.json")
+#head(test)
+
+
+dataPath <- 'data/transmission_5CO150x0gvsv_36kQbsUHMv0I/0/0/'
+fileID <- 'session'
+
+dataFile <- paste(dataPath,fileID,".json",sep="")
+
+d1 <- jsonlite::fromJSON(dataFile, flatten=T) 
+
+
+
+# find source images (are all crammed into node 7)
+source_images <- d1$source_images[[7]]
+
+#add subject id's to the source image dataframe
+source_images$Subject_ID <- d1$subject[0:4]
+
+# extract condition and stim id from "trial_id" and test stim id
+for (i in 1:4) {
+  source_images$Condition[i] <- str_replace_all(source_images$trial_id[i], 'cond_|_stim_\\d+', '')
+  source_images$Stim_ID[i] <- str_replace_all(source_images$trial_id[i], 'cond_\\d+|_stim_', '')
+  source_images$stim[i] <- str_replace_all(source_images$stimulus[i], './img/test_stim_|.png', '')
+}
+
+
+# load csv with MSE data
+mse6 <- read.csv("logfiles/SimilarityData4.csv")
+
+for (i in 1:14) {
+  mse6$Subject_ID[i] <- source_images$Subject_ID[1]
+}
+
+# make a test df from mse6 because source_images don't have as many rows right now
+test_mse <- mse6[1:4,]
+
+# merge the two dataset
+test_2 <- merge(test_mse, source_images)
+
+# Get rid of unneccedary columns
+test_2$Source_image <- NULL
+test_2$stimulus <- NULL
+test_2$X <- NULL
+test_2$trial_id <- NULL
+
+# rename "stimulus" to "Source_image"
+test_2$Source_image <- test_2$stim
+test_2$stim <- NULL
+
+# put columns in the right order
+test_2 <- test_2[, c(1, 4, 5, 2, 3, 7, 6)]
+
+```
+
+
+
+
+```{r}
+
+#print(dataFile)
+
+#test_df <- as.data.frame(test)
+#print(test$subject)
+
+
+#d1$source_images
+
+
+#source_images <- source_images[!is.na(source_images)]
+
+#class(source_images)
+#source_image <- merge(source_images, d)
+
+
+#d2 <- jsonlite::fromJSON(paste(dataPath,"session2",".json",sep=""), flatten=T) 
+#d2 <- d2 %>% 
+ # select(c(-previous_color_chain,id))
+
+#df_all <- rbind(d1, d2)
+
+# mse6$Subject_ID[0:4] <- source_images$subject
+```
+
