@@ -1,0 +1,747 @@
+---
+title: "Importing data"
+author: "Sophia Kleist Karlson"
+date: "27 okt 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+pacman::p_load(tidyverse, jsonlite, rjson, stringr, dplyr)
+
+setwd("~/Social Transmission Study/Analysis of drawings/")
+
+RStudio.Version() #why this?
+
+```
+
+
+
+
+```{r}
+#test <- fromJSON(file = "data/transmission_5CO150x0gvsv_36kQbsUHMv0I/0/0/session.json")
+#head(test)
+
+chain <- c()
+generation <- c()
+
+data_path <- 'data/transmission_5CO150x0gvsv_36kQbsUHMv0I/' 
+
+chain_ID <- 1
+data_path_chain_list <- paste(data_path, chain_ID, "/", sep="")
+data_path_chain_list <- paste(data_path_chain_list,'/', sep="")
+
+
+#data_path_chain <- paste(data_path, 0, "/", sep="")
+  
+#dir.exists(file.path(paste(data_path, 1, "/", sep="")))
+
+chain_path <- c()
+if (dir.exists(file.path(paste(data_path, 0, "/", sep=""))) == TRUE) {
+    chain_path <- paste(data_path, 0, "/", sep="")
+}
+
+
+data_path_chain_list
+
+class(dataPath)
+
+file_ID <- 'session'
+
+data_file <- paste(data_path,file_ID,".json",sep="")
+
+class(data_file)
+
+?paste
+
+data_path_chain_list <- c()
+data_path_gen_list
+data_file_list <- c()
+data_flat <- c()
+
+
+chain <- c()
+generation <- c()
+
+
+
+
+
+chain <- c()
+chain_path <- c()
+generation <- c()
+gen_path <- c()
+
+for (i in 0:1){ # if there are 20 chains
+  #data_path_chain[i] <- paste(data_path, i, "/", sep="")
+  if (dir.exists(file.path(paste(data_path, i, "/", sep=""))) == TRUE) {
+    chain_path[i] <- paste(data_path, i, "/", sep="")
+    chain[i] <- paste(chain, i, sep=",")
+    for (g in 0:6){ #if there are 7 generations per chain
+
+      if (dir.exists(file.path(paste(chain_path[g], g, "/", sep=""))) == TRUE) {
+        gen_path[g] <- paste(chain_path[g], g, "/", sep="")
+        #gen <- g
+        #chain_gen_df$generation <- g
+        #chain_gen_df$chain <- chain
+        generation[g] <- paste(generation,g, sep=",")
+      }
+    }
+    
+    #chain_gen_df <- data.frame(chain, generation)
+  }
+}
+
+
+
+if (dir.exists(file.path(paste(data_path, 0, "/", sep=""))) == TRUE) {
+  chain_path <- paste(data_path, 0, "/", sep="")
+  chain <- 0
+  if (dir.exists(file.path(paste(chain_path, 0, "/", sep=""))) == TRUE) {
+    gen_path <- paste(chain_path, 0, "/", sep="")
+    #gen <- g
+    generation <- paste(0)
+    chain <- paste(0)
+    chain_gen_df <- data.frame(chain, generation)
+  }
+}
+
+
+    
+  
+  #data_path_chain_list[i] <- paste(data_path_chain_list, '/', sep="")
+  
+  for (g in data_path_chain_list) { # or g in 0:6 if there are 7 generations per chain
+    data_path_gen_list[g] <- paste(dataPath + i + '/' + g + '/')
+    #dataPath[g] <- paste(dataPath, g, '/')
+    dataFileList[g] <- paste(dataPathList,fileID,".json",sep="")
+    data_flat[g] <- jsonlite::fromJSON(dataFile, flatten=T) 
+    source_images <- d1[g]$source_images[[7]]
+    source_images$Subject_ID <- d1$subject[0:4]
+    
+    for (s in 1:4) {
+      source_images$Condition[s] <- str_replace_all(source_images$trial_id[s], 'cond_|_stim_\\d+', '')
+      source_images$Stim_ID[s] <- str_replace_all(source_images$trial_id[s], 'cond_\\d+|_stim_', '')
+      source_images$stim[s] <- str_replace_all(source_images$stimulus[s], './img/test_stim_|.png', '')
+    }
+    
+    
+    #data_flat[g] <- paste(d1[g], collapse=NULL)
+    #d1[g] <- paste(dataFile, collapse=NULL)
+  }
+
+
+
+# find source images (are all crammed into node 7)
+
+#add subject id's to the source image dataframe
+
+# extract condition and stim id from "trial_id" and test stim id
+
+
+
+# load csv with MSE data
+mse7 <- read.csv("logfiles/SimilarityData4.csv")
+
+for (i in 1:14) {
+  mse6$Subject_ID[i] <- source_images$Subject_ID[1]
+}
+
+# make a test df from mse6 because source_images don't have as many rows right now
+test_mse <- mse6[1:4,]
+
+# merge the two dataset
+test_2 <- merge(test_mse, source_images)
+
+# Get rid of unneccedary columns
+test_2$Source_image <- NULL
+test_2$stimulus <- NULL
+test_2$X <- NULL
+test_2$trial_id <- NULL
+
+# rename "stimulus" to "Source_image"
+test_2$Source_image <- test_2$stim
+test_2$stim <- NULL
+
+# put columns in the right order
+test_2 <- test_2[, c(1, 4, 5, 2, 3, 7, 6)]
+
+```
+
+
+```{r}
+#all the data from the last participant (because it doesn't append the dataframes together)
+for (i in 1:length(list_files)){
+  file_path <- list_files[i]
+  d <- jsonlite::fromJSON(file_path, flatten=T)
+}
+
+file_path_1 <- list_files[1]
+d1 <- jsonlite::fromJSON(file_path_1, flatten=T)
+
+file_path_2 <- list_files[2]
+d2 <- jsonlite::fromJSON(file_path_2, flatten=T)
+file_path_3 <- list_files[3]
+d3 <- jsonlite::fromJSON(file_path_3, flatten=T)
+file_path_4 <- list_files[4]
+d4 <- jsonlite::fromJSON(file_path_4, flatten=T)
+file_path_6 <- list_files[6]
+d6 <- jsonlite::fromJSON(file_path_6, flatten=T)
+
+
+
+
+shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+
+file_path_7 <- list_files[7]
+d7 <- jsonlite::fromJSON(file_path_7, flatten=T) %>% 
+  transform(responses = shift2(responses, 1)) %>% 
+  filter(is.na(id) + is.na(responses) < 2 ,) %>% 
+  select(subject, responses, id, source_images, files.image.path) %>% 
+  add_column(Chain = NA) %>% 
+  add_column(Generation = NA) %>% 
+  add_column(Condition = NA) %>% 
+  add_column(Source_image = NA) 
+
+Source_images <- d7$source_images[[2]]
+
+for (s in 1:nrow(Source_images)) {
+  for (d in 4:15){
+    if (Source_images$trial_id[s] == d7$id[d]){
+      d7$Condition[d] <- str_replace_all(Source_images$trial_id[s], 'cond_|_stim_\\d+', '')
+      d7$Source_image[d] <- str_replace_all(Source_images$stimulus[s], './img/stim_|.png', '')
+    }
+  d7$Chain <- str_replace_all(d7$files.image.path[2], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+  d7$Generation <- str_replace_all(d7$files.image.path[2], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+  }
+}
+
+d7 <- select(d7, subject, Chain, Generation, Condition, Source_image, responses)
+d7 <- d7[-c(1:3), ]
+
+
+
+```
+
+
+Loop that works for 1 dataset
+```{r}
+shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+
+file_path_7 <- list_files[7]
+d7 <- jsonlite::fromJSON(file_path_7, flatten=T) %>% 
+  transform(responses = shift2(responses, 1)) %>% 
+  filter(is.na(id) + is.na(responses) < 2 ,) %>% 
+  select(subject, responses, id, source_images, files.image.path) %>% 
+  add_column(Age = NA) %>% 
+  add_column(Gender = NA) %>% 
+  add_column(Occupation = NA) %>% 
+  add_column(Chain = NA) %>% 
+  add_column(Generation = NA) %>% 
+  add_column(Condition = NA) %>% 
+  add_column(Source_image = NA) %>% 
+  add_column(Confidence = NA) %>% 
+  add_column(Difficulty = NA) %>% 
+  add_column(Like = NA) %>% 
+  add_column(Experience = NA) 
+
+Source_images <- d7$source_images[[2]]
+
+for (s in 1:nrow(Source_images)) {
+  for (d in 4:15){
+    if (Source_images$trial_id[s] == d7$id[d]){
+      d7$Condition[d] <- str_replace_all(Source_images$trial_id[s], 'cond_|_stim_\\d+', '')
+      d7$Source_image[d] <- str_replace_all(Source_images$stimulus[s], './img/stim_|.png', '')
+    }
+  d7$Chain <- str_replace_all(d7$files.image.path[2], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+  d7$Generation <- str_replace_all(d7$files.image.path[2], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+  }
+}
+
+d7 <- select(d7, subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, responses, Difficulty, Like, Experience) 
+
+d7$Like <- str_split_fixed(tail(d7$responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', '')
+d7$Difficulty <- str_split_fixed(tail(d7$responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', '')
+
+d7$Experience <- tail(d7$responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', '')
+
+d7$Gender <- str_split_fixed(tail(d7$responses, 3)[3], "\\,",3)[,1] %>% str_replace_all('\\{"gender":"|"$', '')
+d7$Age <- str_split_fixed(tail(d7$responses, 3)[3], "\\,",3)[,2] %>% str_replace_all('"age":"|"$', '')
+d7$Occupation <- str_split_fixed(tail(d7$responses, 3)[3], "\\,",3)[,3] %>% str_replace_all('"occupation":"|"\\}$', '')
+
+d7$Confidence <- str_replace_all(d7$responses, '\\{"confidence":|\\}', '')
+
+
+d7 <- slice(d7, 1:(n()-3)) 
+d7 <- tail(d7,12)
+
+d7$responses <- NULL
+
+```
+
+
+
+#Load data
+Make a loop for loading the logfiles
+```{r}
+#specifying data path
+data_path <- 'data' 
+#creating a list of files
+list_files <- list.files(path = data_path,
+                         recursive = T,
+                         pattern = "session.json$",
+                         full.names = T)
+
+list_files
+# wmpty data fame with the correct column names
+all_data <- data.frame(matrix(ncol = 12, nrow = 0))
+x <- c("Subject", "Chain", "Generation", "Condition", "Source_image", "MSE", "Complexity", "Conventionality", "Confidence", "Responses", "Test_part", "RT")#the last three ones I am not completely sure we need 
+colnames(all_data) <- x
+
+length(list_files)
+
+
+#subject_data <- data.frame(matrix(ncol = 1, nrow = 0))
+#x <- c("Subject")
+#colnames(subject_data) <- x
+
+
+shift2 <- function(x, n) `length<-`(tail(x, -n), length(x))
+
+
+#loop that extraxts the data we want
+for (i in 1:length(list_files)){
+  file_path <- list_files[i]
+  d <- jsonlite::fromJSON(file_path, flatten=T) %>% 
+    # shift responses one row up
+    transform(responses = shift2(responses, 1)) %>% 
+    #filter out erows where both id and responses are na
+    filter(is.na(id) + is.na(responses) < 2 ,) %>% 
+    
+    
+  
+  Source_images <- d7$source_images[[8]]
+  for (s in 1:nrow(Source_images)) {
+      Source_images$Condition[s] <- str_replace_all(Source_images$trial_id[s], 'cond_|_stim_\\d+', '')
+      Source_images$Stim_ID[s] <- str_replace_all(Source_images$trial_id[s], 'cond_\\d+|_stim_', '')
+      Source_images$Source_image[s] <- str_replace_all(Source_images$stimulus[s], './img/stim_|.png', '')
+      Source_images$Chain <- str_replace_all(d7$files.image.path[8], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+      Source_images$Generation <- str_replace_all(d7$files.image.path[8], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+  }
+  d <- d %>% 
+    rename(Subject = subject, 
+           Drawing_ID = id,
+           Confidence = responses,
+           Source_images = source_images,
+           #RT = rt,
+           Test_part = test_part,
+           Filepath = files.data.path)
+    
+  
+    #mutate(source_images = Source_images[[7]])
+    #mutate(Condition = case_when(Drawing_ID==))
+    
+    #mutate(
+     # Condition, Chain,Generation, 
+    #) %>% 
+    
+    select(Subject, Drawing_ID, Source_images, Confidence, Test_part, Filepath)#Condition, Chain, Generation, RT,
+  
+  if (nrow(all_data) == 0){
+    all_data <- d
+  } else{
+    all_data <- rbind(all_data, d)
+  }
+}
+
+
+
+ 
+```
+
+to do:
+- devide responses into confidence etc.
+- make condition row
+- 
+
+
+```{r}
+
+#specifying data path
+data_path <- 'data' 
+#creating a list of files
+list_files <- list.files(path = data_path,
+                         recursive = T,
+                         pattern = "session.json$",
+                         full.names = T)
+
+list_files
+# wmpty data fame with the correct column names
+
+all_data <- data.frame(matrix(ncol = 12, nrow = 0))
+
+#x <- c("Subject", "Chain", "Generation", "Condition", "Source_image", "MSE", "Complexity", "Conventionality", "Confidence", "Responses", "Test_part", "RT")#the last three ones I am not completely sure we need 
+#colnames(all_data) <- x
+
+length(list_files)
+
+
+
+shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+
+
+for (i in 1:length(list_files)){
+  shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+  file_path <- list_files[i]
+  d <- jsonlite::fromJSON(file_path, flatten=T) %>% 
+    transform(responses = shift2(responses, 1)) %>% 
+    filter(is.na(id) + is.na(responses) < 2 ,) %>%
+    select(subject, responses, id, source_images, files.image.path) %>% 
+    add_column(Age = NA) %>% 
+    add_column(Gender = NA) %>% 
+    add_column(Occupation = NA) %>% 
+    add_column(Chain = NA) %>% 
+    add_column(Generation = NA) %>% 
+    add_column(Condition = NA) %>% 
+    add_column(Source_image = NA) %>% 
+    add_column(Confidence = NA) %>% 
+    add_column(Difficulty = NA) %>% 
+    add_column(Like = NA) %>% 
+    add_column(Experience = NA) %>% 
+    
+    
+    #mutate(Source_images = source_images[[2]])
+
+    select(subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, responses, Difficulty, Like, Experience) %>% 
+    mutate(Like = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', ''),
+          Difficulty = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', ''),
+          Experience = tail(responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', ''),
+          Gender = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,1] %>% str_replace_all('\\{"gender":"|"$', ''),
+          Age = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,2] %>% str_replace_all('"age":"|"$', ''),
+          Occupation = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,3] %>% str_replace_all('"occupation":"|"\\}$', ''),
+          Confidence = str_replace_all(responses, '\\{"confidence":|\\}', ''))
+  
+  
+  if (nrow(all_data) == 0){
+    all_data <- d
+  } else{
+    all_data <- rbind(all_data, d)
+  }
+}
+
+
+```
+
+    
+   for (s in 1:nrow(Source_images)) {
+    for (d in 4:15){
+      if (Source_images$trial_id[s] == d$id[d]){
+        d$Condition[d] <- str_replace_all(Source_images$trial_id[s], 'cond_|_stim_\\d+', '')
+        d$Source_image[d] <- str_replace_all(Source_images$stimulus[s], './img/stim_|.png', '')
+      }
+    d$Chain <- str_replace_all(d$files.image.path[2], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+    d$Generation <- str_replace_all(d$files.image.path[2], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+    }
+  }
+  
+  
+  
+  
+  d <- d %>% 
+    select(subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, responses, Difficulty, Like, Experience) %>% 
+    mutate(Like = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', ''),
+          Difficulty <- str_split_fixed(tail(responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', ''),
+          Experience <- tail(responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', ''),
+          Gender <- str_split_fixed(tail(responses, 3)[3], "\\,",3)[,1] %>% str_replace_all('\\{"gender":"|"$', ''),
+          Age <- str_split_fixed(tail(responses, 3)[3], "\\,",3)[,2] %>% str_replace_all('"age":"|"$', ''),
+          Occupation <- str_split_fixed(tail(responses, 3)[3], "\\,",3)[,3] %>% str_replace_all('"occupation":"|"\\}$', ''),
+          Confidence <- str_replace_all(responses, '\\{"confidence":|\\}', ''))
+          
+          
+          %>% 
+    slice(d, 1:(n()-3)) %>% 
+    tail(d,12) %>% 
+    responses <- NULL %>% 
+    rename(Subject = subject)
+    
+    
+    
+
+
+
+
+
+
+  d <- d %>% 
+    rename(Chain = info.chain,
+           Subject = info.subject,
+           Generation = info.generation) %>% 
+    mutate(Condition_label=
+      case_when(
+        Condition ==2~"Naming transmission" ,
+        Condition ==1~"Pure transmission")) %>% 
+      select(test_part, rt, Condition, Condition_label, Subject, Chain, Generation, Language, Hue_source, Saturation_source, Lightness_source, Hue_matched, Saturation_matched, Lighness_matched, Color_label_source, Color_label_matched, Language, basic_colors, creative_name, Hue_color_to_name, Saturation_color_to_name, Lightness_color_to_name, Color_label_naming, responses)
+    
+
+  if (nrow(all_data) == 0){
+    all_data <- d
+  } else{
+    all_data <- rbind(all_data, d)
+  }
+
+    
+#Exstarcting demographics
+```{r}
+#filtering demographics
+demo <- allData %>% 
+  filter(test_part == 'demographics') %>% 
+  select(Subject, responses)
+
+#Preparing loop
+demoData <- data.frame(matrix(ncol = 6, nrow = length(demo$Subject)))
+names <- c("Subject","Vision_impairments", "Age", "Gender", "Language_spoken", "Participated_before")
+colnames(demoData) <- names
+demoData <- left_join(demo, demoData)
+
+#making a loop that extracts all the information from the demographics responses
+for (i in 1:length(demo$Subject)){
+  matrix <- str_split_fixed(demo[i,2], "\\,",5)
+  matrix2 <- str_split_fixed(matrix, "\\:",2)
+  demo_df <- as.data.frame(matrix2)
+  data_wide <- spread(demo_df, V1, V2)
+  
+  demoData[i,3] <- as.character(data_wide[1,5])
+  demoData[i,4] <- as.character(data_wide[1,1])
+  demoData[i,5] <- as.character(data_wide[1,2])
+  demoData[i,6] <- as.character(data_wide[1,3])
+  demoData[i,7] <- as.character(data_wide[1,4])
+
+  
+}  
+
+#Removing punctuations
+demoData$Vision_impairments <- gsub('[[:punct:] ]+','',demoData$Vision_impairments)
+demoData$Age <- gsub('[[:punct:] ]+','',demoData$Age)
+demoData$Gender <- gsub('[[:punct:] ]+','',demoData$Gender)
+demoData$Language_spoken <- gsub('[[:punct:] ]+','',demoData$Language_spoken)
+demoData$Participated_before <- gsub('[[:punct:] ]+','',demoData$Participated_before)
+
+#Removing responses column
+demoData <- demoData %>% select(-responses)
+
+#merge demographics with allData
+allData <- merge(allData, demoData)
+
+#fixing some rows
+fix <- allData %>% filter(Age == "no")
+fix$Age <- fix$Gender
+fix$Gender <- fix$Language_spoken
+fix$Language_spoken <- fix$Participated_before
+fix$Participated_before <- "no"
+#and replacing them 
+allData <- subset(allData, Age!="no")
+allData <- rbind(allData, fix)
+
+```
+
+#Extractin confidence ratings
+```{r}
+#Rename color labels to English
+allData <- allData %>% 
+  mutate(Color_label_matched = case_when(
+          Color_label_matched == "seed sennepsgul" ~ "seed mustard",
+          Color_label_matched == "seed græsgrøn" ~ "seed grass green",
+          Color_label_matched == "seed havblå" ~ "seed ocean blue",
+          Color_label_matched == "seed mørk rosa" ~ "seed dark rose",
+          Color_label_matched == "seed mintgrøn" ~ "seed mint green",
+          TRUE ~ Color_label_matched)) %>%
+  #subset(Color_label_matched!="seed mint green") %>% 
+  mutate(lagged_label = lag(Color_label_matched, n = 1))
+
+#filtering confidence ratings
+confidence <- allData %>% 
+  filter(test_part == 'confidence') %>% 
+  select(Subject, responses, lagged_label) %>%
+  na.omit() %>% 
+  rename(Color_label_matched = lagged_label,
+         Confidence = responses)
+
+confidence$Confidence <- str_replace_all(confidence$Confidence, "..\\bconfidence..", "")
+confidence$Confidence <- str_replace_all(confidence$Confidence, "\\}", "")
+confidence$Confidence <- as.numeric(confidence$Confidence)
+
+#removing test match
+confidence <- subset(confidence, Color_label_matched!="seed mint green")
+
+
+```
+
+#Making color matching df
+Filter rows containing color matching and selecting which rows to keep
++ Creating the column with focal hue values
+```{r}
+color_matching <- allData %>% 
+  filter(test_part == 'matching') %>% 
+  select(Subject, Language, Age, Gender, Language_spoken, rt, Condition, Condition_label,  Chain, Generation, Language, Color_label_source, Color_label_matched, Lightness_source, Lighness_matched, Saturation_source, Saturation_matched, Hue_source, Hue_matched) 
+
+
+#Add 360 when matched hue is between 0 and 20 
+# color_matching$Hue_matched <- as.numeric(color_matching$Hue_matched)
+# color_matching$Hue_matched <- case_when(color_matching$Hue_matched < 30 ~ color_matching$Hue_matched + 360,
+#                                color_matching$Hue_matched > 13 ~ color_matching$Hue_matched)
+# color_matching$Hue_source <- case_when(color_matching$Hue_source < 13 ~ color_matching$Hue_source + 360,
+#                                color_matching$Hue_source > 13 ~ color_matching$Hue_source)
+#Subtract 360 when matched hue is above 360 
+# color_matching$Hue_matched <- case_when(color_matching$Hue_matched > 360 ~ color_matching$Hue_matched - 360,
+#                                color_matching$Hue_matched < 360 ~ color_matching$Hue_matched)
+# color_matching$Hue_source <- case_when(color_matching$Hue_source > 360 ~ color_matching$Hue_source - 360,
+#                                color_matching$Hue_source < 360 ~ color_matching$Hue_source)
+
+#Hues of each focal color 
+red <- 12.2 + 360
+yellow <- 62.4
+green <- 136.5
+blue <- 193.6
+#Hues of each seed color 
+red_blue <- 327.55
+yellow_red <- 49.85
+green_yellow <- 117.98
+blue_green <- 179.34
+#Add focal hue angles
+color_matching <- color_matching %>% 
+  mutate(Focal = case_when(
+          Color_label_matched == "seed mustard" ~ yellow,
+          Color_label_matched == "seed grass green" ~ green,
+          Color_label_matched == "seed ocean blue" ~ blue,
+          Color_label_matched == "seed dark rose" ~ red)) %>% 
+  mutate(Seed = case_when(
+          Color_label_matched == "seed mustard" ~ yellow_red,
+          Color_label_matched == "seed grass green" ~ green_yellow,
+          Color_label_matched == "seed ocean blue" ~ blue_green,
+          Color_label_matched == "seed dark rose" ~ red_blue))
+
+#removing test match
+color_matching <- subset(color_matching, Color_label_matched!="seed mint green")
+
+#As numeric
+color_matching$Seed <- as.numeric(color_matching$Seed)
+
+#Add column with difference between matched hue and focal:
+color_matching <- color_matching %>% 
+  mutate(
+    Dif = Focal - Hue_matched,
+    Rel_dif = 100/(Focal - Seed)*Dif,
+    Accuracy_hue = abs(Hue_source - Hue_matched),
+    Accuracy_sat = abs(Saturation_source - Saturation_matched)
+  )
+
+#Adding confidence ratings
+color_matching <- left_join(confidence, color_matching)
+
+#As factors cleaned
+color_matching$Condition <- as.factor(color_matching$Condition)
+color_matching$Chain <- as.factor(color_matching$Chain)
+color_matching$Color_label_matched <- as.factor(color_matching$Color_label_matched)
+color_matching$Gender <- as.factor(color_matching$Gender)
+color_matching$Language <- as.factor(color_matching$Language)
+
+#unique danish
+color_matching_danish <- color_matching %>% filter(Language == "Danish")
+us <- unique(color_matching$Subject)
+usd <- unique(color_matching_danish$Subject)
+levels(color_matching$Color_label_matched)
+
+#Writing the CSV file to directory with date of writing automatically generated
+write.csv(color_matching, file=paste("color_matching",Sys.Date(), sep = "", ".csv"))
+
+
+```
+
+
+#Making color naming df
+
+```{r}
+color_naming_df <- allData %>% 
+  filter(test_part == 'naming') %>% 
+  select(Condition_label, basic_colors, creative_name, Chain, Generation, Subject, Condition, Language, Hue_color_to_name, Saturation_color_to_name, Lightness_color_to_name, Color_label_naming, Vision_impairments, Age, Gender, Language_spoken, Participated_before) 
+
+us <- unique(color_naming_df$Subject)
+
+write.csv(color_naming_df, file=paste("color_naming",Sys.Date(),sep = "", ".csv"))
+
+```
+
+#Making reflective responses df
+```{r}
+
+#Reflecting
+d_reflect <- allData %>% 
+  filter(test_part == 'post-experiment') %>% 
+  select(responses, Subject, Language_spoken, Gender, Age)
+
+#Cleaning columns
+d_reflect$responses <- str_replace_all(d_reflect$responses, "..\\blanguage..", "") 
+d_reflect$responses <- str_replace_all(d_reflect$responses, "\\}", "") 
+d_reflect$responses <- str_replace_all(d_reflect$responses, "\\p{quotation mark}", "")
+
+##Remove empty rows
+d_reflect$responses <- as.character(d_reflect$responses)
+d_reflect$responses[d_reflect$responses==""] <- NA
+d_reflect$responses <- as.factor(d_reflect$responses)
+d_reflect <- na.omit(d_reflect)
+
+
+write.csv(d_reflect, file=paste("reflect",Sys.Date(),sep = "", ".csv"))
+
+?count
+```
+
+
+
+
+
+Dummy variable plots
+```{r}
+
+dummy_data_generation <- c(1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7)
+dummy_data_condition <- c(1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4)
+
+dummy_data_error <- c(100, 79, 58, 40, 93, 76, 56, 40, 98, 77, 57, 40, 92, 73, 60, 40, 97, 75, 57, 40, 90, 80, 58, 40, 95, 77, 55, 40)
+
+dummy_data_complexity <- c(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)
+dummy_data_complexity <- c(99, 4, 0, 100, 6, 7, 0, 100, 10, 11, 12, 100, 14, 0, 16, 100, 18, 19, 0, 100, 0, 23, 25, 100, 26, 27, 28, 100)
+
+dummy_data <- data.frame(dummy_data_subject_id, dummy_data_chain, dummy_data_generation, dummy_data_condition, dummy_data_complexity, dummy_data_error)
+
+
+dummy_plotting_complexity <- 
+  ggplot(dummy_data, aes(x = dummy_data_generation, y = dummy_data_complexity)) +
+  geom_point(aes(color = dummy_data_condition)) +
+  labs(title = "Development of complexity over generations across conditions ",
+       x = "Generation",
+       y = "Complexity", 
+       color = "Condition")
+dummy_plotting_complexity
+
+
+dummy_plotting_error <- 
+  ggplot(dummy_data, aes(x = dummy_data_generation, y = dummy_data_error)) +
+  geom_point(aes(color = dummy_data_condition)) +
+  labs(title = "Development of error over generations across conditions ",
+       x = "Generation",
+       y = "Error", 
+       color = "Condition")
+
+dummy_plotting_error
+
+dummy_data_subject_id <- c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28)
+dummy_data_chain <- c(1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4)
+
+
+```
+
