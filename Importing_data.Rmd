@@ -412,19 +412,29 @@ for (i in 1:length(list_files)){
     add_column(Confidence = NA) %>% 
     add_column(Difficulty = NA) %>% 
     add_column(Like = NA) %>% 
-    add_column(Experience = NA) %>% 
-    
-    
-    #mutate(Source_images = source_images[[2]])
+    add_column(Experience = NA)
 
-    select(subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, responses, Difficulty, Like, Experience) %>% 
-    mutate(Like = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', ''),
-          Difficulty = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', ''),
-          Experience = tail(responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', ''),
+  # source_image
+  
+  
+  d <- d %>% 
+    select(subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, source_images, Confidence, responses, Difficulty, Like, Experience) %>% 
+    #extracting answers from questionaires
+    mutate(Experience = tail(responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', ''),
           Gender = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,1] %>% str_replace_all('\\{"gender":"|"$', ''),
           Age = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,2] %>% str_replace_all('"age":"|"$', ''),
           Occupation = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,3] %>% str_replace_all('"occupation":"|"\\}$', ''),
           Confidence = str_replace_all(responses, '\\{"confidence":|\\}', ''))
+  
+  #extracting difficulty and likability
+  if (str_detect(tail(d$responses, 3)[1], '\\{"post_questionaire":\\d+\\}') == TRUE){
+    d <- d %>% mutate(Difficulty = tail(responses, 3)[1] %>% str_replace_all('\\{"post_questionaire":|\\}', ''))
+  } else {
+    d <- d %>% 
+      mutate(Difficulty = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', ''), 
+      Like = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', ''))
+  }
+  
   
   
   if (nrow(all_data) == 0){
@@ -435,6 +445,33 @@ for (i in 1:length(list_files)){
 }
 
 
+
+```
+
+
+```{r}
+d$source_images
+Source_images <- d %>% select(source_images[[2]])
+
+Source_images <- d %>% filter(source_images[[2]])
+
+
+  for (s in 1:nrow(Source_images)) {
+    for (d in 4:15){
+      if (Source_images$trial_id[s] == d$id[d]){
+        d$Condition[d] <- str_replace_all(Source_images$trial_id[s], 'cond_|_stim_\\d+', '')
+        d$Source_image[d] <- str_replace_all(Source_images$stimulus[s], './img/stim_|.png', '')
+      }
+    d$Chain <- str_replace_all(d$files.image.path[2], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+    d$Generation <- str_replace_all(d$files.image.path[2], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+    }
+  }
+
+
+Source_images <- select(d, source_images[[2]])
+str_detect(tail(d$responses, 3)[1], '\\{"post_questionaire":\\d+\\}')
+
+#tail(d$responses, 3)[1] == str_detect('\\{"post_questionaire":\\d+\\}')
 ```
 
     
