@@ -1,0 +1,170 @@
+---
+title: "Preprocessing"
+author: "Sophia Kleist Karlson"
+date: "11 nov 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+pacman::p_load(tidyverse, jsonlite, rjson, stringr, dplyr)
+
+setwd("~/Social Transmission Study/Analysis of drawings/")
+
+RStudio.Version() #why this?
+```
+
+
+
+This loop works
+```{r}
+
+#specifying data path
+data_path <- 'data' 
+
+#creating a list of files
+list_files <- list.files(path = data_path,
+                         recursive = T,
+                         pattern = "session.json$",
+                         full.names = T)
+
+list_files
+# wmpty data fame with the correct column names
+
+all_data <- data.frame(matrix(ncol = 1, nrow = 0)) #ncol doesn't actually make a difference
+
+length(list_files)
+
+# function that shifts one column one row up
+shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+
+
+for (i in 1:length(list_files)){
+  shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+  file_path <- list_files[i]
+  d <- jsonlite::fromJSON(file_path, flatten=T) %>% 
+    transform(responses = shift2(responses, 1)) %>% 
+    filter(is.na(id) + is.na(responses) < 2 ,) %>%
+    add_column(Age = NA) %>% 
+    add_column(Gender = NA) %>% 
+    add_column(Occupation = NA) %>% 
+    add_column(Chain = NA) %>% 
+    add_column(Generation = NA) %>% 
+    add_column(Condition = NA) %>%
+    add_column(Confidence = NA) %>% 
+    add_column(Difficulty = NA) %>% 
+    add_column(Like = NA) %>% 
+    add_column(Experience = NA) %>% 
+    select(subject, Age, Gender, Occupation, Chain, Generation, Condition, source_images, Confidence, responses, Difficulty, Like, Experience, id, files.image.path) %>% 
+    #extracting answers from questionaires
+    mutate(Experience = tail(responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', ''),
+          Gender = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,1] %>% str_replace_all('\\{"gender":"|"$', ''),
+          Age = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,2] %>% str_replace_all('"age":"|"$', ''),
+          Occupation = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,3] %>% str_replace_all('"occupation":"|"\\}$', ''),
+          Confidence = str_replace_all(responses, '\\{"confidence":|\\}', ''),
+          Chain = str_replace_all(files.image.path[2], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$'),
+          Generation = str_replace_all(files.image.path[2], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$'),
+          Condition = str_replace_all(id, 'cond_|_stim_\\d+', ''))
+  
+  #extracting difficulty and likability
+  if (str_detect(tail(d$responses, 3)[1], '\\{"post_questionaire":\\d+\\}') == TRUE){
+    d <- d %>% mutate(Difficulty = tail(responses, 3)[1] %>% str_replace_all('\\{"post_questionaire":|\\}', ''))
+  } else {
+    d <- d %>% 
+      mutate(Difficulty = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', ''), 
+      Like = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', ''))
+  }
+  
+  # take care of source images, chain, gen and cond
+  Source_images <- d$source_images[[2]] %>% rename(id = trial_id)
+  d <- merge(d, Source_images)#, sort = FALSE
+  
+  d <- d %>% 
+    mutate(stimulus = str_replace_all(stimulus, './img/stim_|.png', '')) %>% 
+    rename(Source_image = stimulus, 
+           Subject = subject) %>%  
+    select(Subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, Difficulty, Like, Experience)
+  
+  if (nrow(all_data) == 0){
+    all_data <- d
+  } else{
+    all_data <- rbind(all_data, d)
+  }
+}
+
+```
+
+
+Inspecting that everything looks fine
+```{r}
+
+#is.na(all_data)
+
+# These should be numeric
+class(all_data$Chain)
+class(all_data$Generation)
+class(all_data$Condition)
+class(all_data$Source_image)
+class(all_data$Confidence)
+class(all_data$Like)
+class(all_data$Difficulty)
+
+# So I change them to numeric
+all_data$Chain <- as.numeric(all_data$Chain)
+all_data$Generation <- as.numeric(all_data$Generation)
+all_data$Condition <- as.numeric(all_data$Condition) 
+all_data$Source_image <- as.numeric(all_data$Source_image)
+all_data$Confidence <- as.numeric(all_data$Confidence)
+all_data$Like <- as.numeric(all_data$Like)
+all_data$Difficulty <- as.numeric(all_data$Difficulty)
+  
+
+# These should be character
+class(all_data$Age)
+class(all_data$Gender)
+class(all_data$Occupation)
+
+
+# Checking range of some variables
+range(all_data$Chain)
+range(all_data$Generation)
+range(all_data$Source_image)
+range(all_data$Confidence)
+```
+
+
+
+Adding MSE and complexity measures
+```{r}
+
+# load csv with MSE data
+mse7 <- read.csv("logfiles/SimilarityData4.csv")
+
+for (i in 1:14) {
+  mse6$Subject_ID[i] <- source_images$Subject_ID[1]
+}
+
+# make a test df from mse6 because source_images don't have as many rows right now
+test_mse <- mse6[1:4,]
+
+# merge the two dataset
+test_2 <- merge(test_mse, source_images)
+
+# Get rid of unneccedary columns
+test_2$Source_image <- NULL
+test_2$stimulus <- NULL
+test_2$X <- NULL
+test_2$trial_id <- NULL
+
+# rename "stimulus" to "Source_image"
+test_2$Source_image <- test_2$stim
+test_2$stim <- NULL
+
+# put columns in the right order
+test_2 <- test_2[, c(1, 4, 5, 2, 3, 7, 6)]
+```
+
+
+
