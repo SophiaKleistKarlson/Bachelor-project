@@ -1,0 +1,156 @@
+---
+title: "loops that work"
+author: "Sophia Kleist Karlson"
+date: "10 nov 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+Loop that works
+```{r loop}
+
+pacman::p_load(tidyverse, jsonlite, rjson, stringr, dplyr)
+
+setwd("~/Social Transmission Study/Analysis of drawings/")
+
+RStudio.Version() #why this?
+
+
+#specifying data path
+data_path <- 'data' 
+
+#creating a list of files
+list_files <- list.files(path = data_path,
+                         recursive = T,
+                         pattern = "session.json$",
+                         full.names = T)
+
+list_files
+# wmpty data fame with the correct column names
+
+all_data <- data.frame(matrix(ncol = 1, nrow = 0)) #ncol doesn't actually make a difference
+
+length(list_files)
+
+# function that shifts one column one row up
+shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+
+
+for (i in 1:length(list_files)){
+  shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+  file_path <- list_files[i]
+  d <- jsonlite::fromJSON(file_path, flatten=T) %>% 
+    transform(responses = shift2(responses, 1)) %>% 
+    filter(is.na(id) + is.na(responses) < 2 ,) %>%
+    add_column(Age = NA) %>% 
+    add_column(Gender = NA) %>% 
+    add_column(Occupation = NA) %>% 
+    add_column(Chain = NA) %>% 
+    add_column(Generation = NA) %>% 
+    add_column(Condition = NA) %>%
+    add_column(Confidence = NA) %>% 
+    add_column(Difficulty = NA) %>% 
+    add_column(Like = NA) %>% 
+    add_column(Experience = NA) %>% 
+    select(subject, Age, Gender, Occupation, Chain, Generation, Condition, source_images, Confidence, responses, Difficulty, Like, Experience, id, files.image.path) %>% 
+    #extracting answers from questionaires
+    mutate(Experience = tail(responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', ''),
+          Gender = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,1] %>% str_replace_all('\\{"gender":"|"$', ''),
+          Age = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,2] %>% str_replace_all('"age":"|"$', ''),
+          Occupation = str_split_fixed(tail(responses, 3)[3], "\\,",3)[,3] %>% str_replace_all('"occupation":"|"\\}$', ''),
+          Confidence = str_replace_all(responses, '\\{"confidence":|\\}', ''),
+          Chain = str_replace_all(files.image.path[2], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$'),
+          Generation = str_replace_all(files.image.path[2], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$'),
+          Condition = str_replace_all(id, 'cond_|_stim_\\d+', ''))
+  
+  #extracting difficulty and likability
+  if (str_detect(tail(d$responses, 3)[1], '\\{"post_questionaire":\\d+\\}') == TRUE){
+    d <- d %>% mutate(Difficulty = tail(responses, 3)[1] %>% str_replace_all('\\{"post_questionaire":|\\}', ''))
+  } else {
+    d <- d %>% 
+      mutate(Difficulty = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', ''), 
+      Like = str_split_fixed(tail(responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', ''))
+  }
+  
+  # take care of source images, chain, gen and cond
+  Source_images <- d$source_images[[2]] %>% rename(id = trial_id)
+  d <- merge(d, Source_images)#, sort = FALSE
+  
+  d <- d %>% 
+    mutate(stimulus = str_replace_all(stimulus, './img/stim_|.png', '')) %>% 
+    rename(Source_image = stimulus, 
+           Subject = subject) %>%  
+    select(Subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, Difficulty, Like, Experience)
+  
+  if (nrow(all_data) == 0){
+    all_data <- d
+  } else{
+    all_data <- rbind(all_data, d)
+  }
+}
+```
+
+
+
+everything (works for one dataset), but not in a loop
+
+```{r pressure, echo=FALSE}
+shift2 <- function(x, n) `length<-`(tail(x, -n), length(x)) 
+
+file_path_7 <- list_files[7]
+d7 <- jsonlite::fromJSON(file_path_7, flatten=T) %>% 
+  transform(responses = shift2(responses, 1)) %>% 
+  filter(is.na(id) + is.na(responses) < 2 ,) %>% 
+  select(subject, responses, id, source_images, files.image.path) %>% 
+  add_column(Age = NA) %>% 
+  add_column(Gender = NA) %>% 
+  add_column(Occupation = NA) %>% 
+  add_column(Chain = NA) %>% 
+  add_column(Generation = NA) %>% 
+  add_column(Condition = NA) %>% 
+  add_column(Source_image = NA) %>% 
+  add_column(Confidence = NA) %>% 
+  add_column(Difficulty = NA) %>% 
+  add_column(Like = NA) %>% 
+  add_column(Experience = NA) 
+
+Source_images <- d7$source_images[[2]]
+
+for (s in 1:nrow(Source_images)) {
+  for (d in 4:15){
+    if (Source_images$trial_id[s] == d7$id[d]){
+      d7$Condition[d] <- str_replace_all(Source_images$trial_id[s], 'cond_|_stim_\\d+', '')
+      d7$Source_image[d] <- str_replace_all(Source_images$stimulus[s], './img/stim_|.png', '')
+    }
+  d7$Chain <- str_replace_all(d7$files.image.path[2], '/\\d+/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+  d7$Generation <- str_replace_all(d7$files.image.path[2], '/\\d+/|/tutorial1.png', '') %>% str_extract('[:digit:]+$')
+  }
+}
+
+d7 <- select(d7, subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, responses, Difficulty, Like, Experience) 
+
+d7$Like <- str_split_fixed(tail(d7$responses, 3)[1], "\\,",2)[,1] %>% str_replace_all('\\{"post_questionaire_like":', '')
+d7$Difficulty <- str_split_fixed(tail(d7$responses, 3)[1], "\\,",2)[,2] %>% str_replace_all('"post_questionaire_difficulty":|\\}', '')
+
+d7$Experience <- tail(d7$responses, 3)[2] %>% str_replace_all('^\\{"Q0":"|"\\}$', '')
+
+d7$Gender <- str_split_fixed(tail(d7$responses, 3)[3], "\\,",3)[,1] %>% str_replace_all('\\{"gender":"|"$', '')
+d7$Age <- str_split_fixed(tail(d7$responses, 3)[3], "\\,",3)[,2] %>% str_replace_all('"age":"|"$', '')
+d7$Occupation <- str_split_fixed(tail(d7$responses, 3)[3], "\\,",3)[,3] %>% str_replace_all('"occupation":"|"\\}$', '')
+
+d7$Confidence <- str_replace_all(d7$responses, '\\{"confidence":|\\}', '')
+
+
+d7 <- slice(d7, 1:(n()-3)) 
+d7 <- tail(d7,12)
+
+d7$responses <- NULL
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
