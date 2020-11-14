@@ -14,7 +14,7 @@ import os
 
 
 # define path where all drawings are
-path = "C:/Users/Sophia/Documents/Social Transmission Study/Analysis of drawings/all_drawings/"
+path = "C:/Users/Sophia/Documents/Social Transmission Study/Analysis of drawings/data/all_drawings/"
 os.chdir(path)
 print(path)
 
@@ -48,4 +48,4 @@ for i in range(len(img_list)):
   output = cv2.resize(src, dsize)
   
   # write the resized image and put it in the all_resized_drawings folder
-  cv2.imwrite('C:/Users/Sophia/Documents/Social Transmission Study/Analysis of drawings/all_drawings/all_resized_drawings/{}.png'.format(id[i]), output)
+  cv2.imwrite('C:/Users/Sophia/Documents/Social Transmission Study/Analysis of drawings/data/all_drawings/all_resized_drawings/{}.png'.format(id[i]), output)
