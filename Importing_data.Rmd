@@ -175,14 +175,41 @@ test_2 <- test_2[, c(1, 4, 5, 2, 3, 7, 6)]
 
 More old stuff (for 1 dataset)
 ```{r}
+
+data_path <- 'data/mturk/'
+
+chain_path <- c()
+if (dir.exists(file.path(paste(data_path, 1, "/", sep=""))) == TRUE) {
+    chain_path <- paste(data_path, 1, "/", sep="")
+}
+
+
+data_path_chain_list
+
+class(dataPath)
+
+file_ID <- 'session'
+
+data_file <- paste(data_path,file_ID,".json",sep="")
+
+data_file
+
 #all the data from the last participant (because it doesn't append the dataframes together)
 for (i in 1:length(list_files)){
   file_path <- list_files[i]
   d <- jsonlite::fromJSON(file_path, flatten=T)
 }
 
-file_path_1 <- list_files[1]
-d1 <- jsonlite::fromJSON(file_path_1, flatten=T)
+data_file <- data_file[1]
+
+
+d1 <- jsonlite::fromJSON("data/mturk/1/0/session.json", flatten=T)
+d2 <- jsonlite::fromJSON("data/mturk/1/1/session.json", flatten=T)
+
+
+d3 <- jsonlite::fromJSON("data/mturk/transmission_B0zRyElMXCx7_St0GPBAnuzO6_1_6.json", flatten=T)
+d4 <- jsonlite::fromJSON("data/mturk/transmission_B0zRyElMXCx7_St0GPBAnuzO6_1_8.json", flatten=T)
+
 
 file_path_2 <- list_files[2]
 d2 <- jsonlite::fromJSON(file_path_2, flatten=T)
@@ -362,10 +389,26 @@ for (i in 1:length(list_files)){
   }
 }
 
-
-
 ```
 
+
+Inspecting that everything looks fine
+```{r}
+#should be numeric
+class(all_data$Chain)
+class(all_data$Generation)
+class(all_data$Condition)
+class(all_data$Source_image)
+class(all_data$Confidence)
+class(all_data$Like)
+class(all_data$Difficulty)
+
+#should be character
+class(all_data$Age)
+class(all_data$Gender)
+class(all_data$Occupation)
+
+```
 
 
 

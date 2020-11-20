@@ -85,7 +85,7 @@ for (i in 1:length(list_files)){
     mutate(stimulus = str_replace_all(stimulus, './img/stim_|.png', '')) %>% 
     rename(Source_image = stimulus, 
            Subject = subject) %>%  
-    select(Subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, Difficulty, Like, Experience)
+    select(Subject, Age, Gender, Occupation, Chain, Generation, Condition, Source_image, Confidence, Difficulty, Like, Experience, files.image.path)
   
   if (nrow(all_data) == 0){
     all_data <- d
@@ -103,28 +103,33 @@ Inspecting that everything looks fine
 #is.na(all_data)
 
 # These should be numeric
-class(all_data$Chain)
 class(all_data$Generation)
-class(all_data$Condition)
-class(all_data$Source_image)
 class(all_data$Confidence)
 class(all_data$Like)
 class(all_data$Difficulty)
 
-# So I change them to numeric
-all_data$Chain <- as.numeric(all_data$Chain)
 all_data$Generation <- as.numeric(all_data$Generation)
-all_data$Condition <- as.numeric(all_data$Condition) 
-all_data$Source_image <- as.numeric(all_data$Source_image)
 all_data$Confidence <- as.numeric(all_data$Confidence)
 all_data$Like <- as.numeric(all_data$Like)
 all_data$Difficulty <- as.numeric(all_data$Difficulty)
-  
+
+
+# These should be factor
+class(all_data$Chain)
+class(all_data$Condition)
+class(all_data$Source_image)
+
+all_data$Chain <- as.factor(all_data$Chain)
+all_data$Condition <- as.factor(all_data$Condition) 
+all_data$Source_image <- as.factor(all_data$Source_image)
+
 
 # These should be character
+class(all_data$Subject)
 class(all_data$Age)
 class(all_data$Gender)
 class(all_data$Occupation)
+
 
 
 # Checking range of some variables
@@ -132,39 +137,261 @@ range(all_data$Chain)
 range(all_data$Generation)
 range(all_data$Source_image)
 range(all_data$Confidence)
+
+
+# Delete rows from chains with missing drawings (chain 1, 6, 10 and 23)
+all_data <- all_data[!all_data$Chain == 1,]
+all_data <- all_data[!all_data$Chain == 6,]
+all_data <- all_data[!all_data$Chain == 10,]
+all_data <- all_data[!all_data$Chain == 11,]
+all_data <- all_data[!all_data$Chain == 24,]
+
+#write csv file with ID's and image paths
+write.csv(all_data, "data/cleaned_data.csv")
 ```
 
 
 
-Adding MSE and complexity measures
+Make unique drawing IDs and export their paths in a csv
 ```{r}
 
-# load csv with MSE data
-mse7 <- read.csv("logfiles/SimilarityData4.csv")
+#first, add an "ID" row for individual id's containing chain, generation, condition and source image
 
-for (i in 1:14) {
-  mse6$Subject_ID[i] <- source_images$Subject_ID[1]
-}
+all_data <- all_data %>% 
+  mutate(Drawing_ID = paste("Chain_", Chain, "_Gen_", Generation, "_Cond_", Condition, "_Source_", Source_image, sep=""))
+#all_data$Drawing_ID
 
-# make a test df from mse6 because source_images don't have as many rows right now
-test_mse <- mse6[1:4,]
 
-# merge the two dataset
-test_2 <- merge(test_mse, source_images)
+#create dataframe with image paths and unique ID's
+image_names <- data.frame(matrix(ncol = 1, nrow = nrow(all_data)))
 
-# Get rid of unneccedary columns
-test_2$Source_image <- NULL
-test_2$stimulus <- NULL
-test_2$X <- NULL
-test_2$trial_id <- NULL
+# take image paths from all_data and use as image path column, just take out and rename the first part of the path that is not called the same on my computer:
+image_names$image_path <- all_data$files.image.path %>%  str_replace_all('^/experiments/VY53sLXHyJ6H/0G5z021ZWZdA/', 'data/')
+#tried this, but it didn't work: ^/[[:alpha:]+]/[[:alnum:]+]/[[:alnum:]+]/\\d+/\\d+/
+#the paths look like this: /experiments/VY53sLXHyJ6H/0G5z021ZWZdA/0/0/cond_1_stim_1.png
 
-# rename "stimulus" to "Source_image"
-test_2$Source_image <- test_2$stim
-test_2$stim <- NULL
+#take unique drawing ID names
+image_names$Drawing_ID <- all_data$Drawing_ID
+image_names[,1] <- NULL
 
-# put columns in the right order
-test_2 <- test_2[, c(1, 4, 5, 2, 3, 7, 6)]
+source_names <- c("stim_1", "stim_2", "stim_3", "stim_4", "stim_5", "stim_6", "stim_7", "stim_8", "stim_9", "stim_10", "stim_11", "stim_12")
+drawing_names <- image_names[,2]
+
+names <- c(drawing_names, source_names)
+
+#write csv file with ID's and image paths
+write.csv(names, "data/all_drawing_names.csv")
+write.csv(image_names, "data/Drawing_IDs.csv")
+
+
+```
+
+
+NOW, THE PYTHON IMAGE PROCESSING SCRIPT IS RUN, WHICH CREATES THE COMPLEXITY_COMPARISON.CSV THAT IS USED BELOW
+
+
+# comparing complexity of orignal and blurred images
+```{r}
+
+# read complexity data and delete the first unnecessary column
+complexity_data <- read.csv("data/complexity_comparison.csv")
+complexity_data$X <- NULL
+
+
+#check class of complexity measures - they need to be numeric
+class(complexity_data$Complexity_original)
+class(complexity_data$Complexity_convolution)
+
+complexity_data$Complexity_original <- as.numeric(complexity_data$Complexity_original)
+complexity_data$Complexity_convolution <- as.numeric(complexity_data$Complexity_convolution)
+
+
+# make a column with the rato of complexity between the blurred and original images
+complexity_data <- complexity_data %>% mutate(ratio = Complexity_convolution/Complexity_original)
+range(complexity_data$ratio)
+
+
+#why does this not work?
+complexity_data <- complexity_data %>% mutate(mean_comp = mean(Complexity_original, Complexity_convolution))
+
+
+# correlation between the ratio and the comlexity of orignals
+cor(complexity_data$ratio, complexity_data$Complexity_original) #-0.1768 - pretty weak correlation, but still there
+cor(complexity_data$ratio, complexity_data$Complexity_convolution) # -0.1259 - even weaker
+
+```
+
+
+Merge complexity dataframe with all_data
+```{r}
+all_data_2 <- merge(all_data, complexity_data)
+
+all_data_2$Complexity <- all_data_2$Complexity_convolution
+
+all_data_2$Complexity_convolution <- NULL
+
+
+#write csv file with complexity scores
+write.csv(all_data_2, "data/data_w_complexity.csv")
 ```
 
 
 
+importing conventionality data
+```{r}
+
+#specifying data path
+data_path_m <- 'data/mturk' 
+
+#creating a list of files
+list_files_m <- list.files(path = data_path_m,
+                         recursive = T,
+                         pattern = "session.json$",
+                         full.names = T)
+
+data_path_m
+list_files_m
+# wmpty data fame with the correct column names
+
+all_data_m <- data.frame(matrix(ncol = 1, nrow = 0)) #ncol doesn't actually make a difference
+
+length(list_files_m)
+
+
+# extract all mturk files and 
+for (i in 1:length(list_files_m)){
+  file_path_m <- list_files_m[i]
+  d_m <- jsonlite::fromJSON(file_path_m, flatten=T) %>% 
+    select(drawing_id, button_pressed, completion_code) %>% 
+    rename(Drawing_ID = drawing_id,
+           Conventionality = button_pressed) %>% 
+    filter(is.na(Drawing_ID) + is.na(completion_code) < 2 ,)
+  if (nrow(all_data_m) == 0){
+    all_data_m <- d_m
+  } else {
+    all_data_m <- rbind(all_data_m, d_m)
+  }
+}
+
+class(all_data_m$Conventionality)
+all_data_m$Conventionality <- as.numeric(all_data_m$Conventionality)
+mean(all_data_m$Conventionality)
+sd(all_data_m$Conventionality)
+range(all_data_m$Conventionality)
+
+completion_codes <- all_data_m$completion_code 
+completion_codes <- completion_codes[complete.cases(completion_codes)]
+
+
+
+
+#merge conventionality scores with all_data
+all_data_w_convention <- merge(all_data, all_data_m)
+all_data_w_conv_comp <- merge(all_data_2, all_data_m)
+
+all_data_w_convention$completion_code <- NULL 
+all_data_w_conv_comp$completion_code <- NULL 
+
+#write csv files
+write.csv(all_data_w_convention, "data/all_data_w_convention.csv") # all data with conventionality scores
+write.csv(completion_codes, "data/completion_codes.csv") # completion codes
+write.csv(all_data_m, "data/conventionality_data.csv") # conventionality scores
+write.csv(all_data_w_conv_comp, "data/all_data_w_conv_comp.csv") # all data with conventionality and complexity scores
+
+
+```
+
+
+
+
+looking at conventionality from the last 35 trials for each participant
+```{r}
+all_data_m1 <- data.frame(matrix(ncol = 1, nrow = 0)) #ncol doesn't actually make a difference
+
+for (i in 1:length(list_files_m)){
+  file_path_m <- list_files_m[i]
+  d_m <- jsonlite::fromJSON(file_path_m, flatten=T) %>% 
+    #select(drawing_id, button_pressed, completion_code) %>% 
+    rename(Drawing_ID = drawing_id,
+           Conventionality = button_pressed) %>% 
+    filter(is.na(Drawing_ID) + is.na(completion_code) < 2 ,)
+  if (nrow(all_data_m1) == 0){
+    all_data_m1 <- d_m
+  } else {
+    all_data_m1 <- rbind(all_data_m1, d_m)
+  }
+}
+
+all_data_m1$Conventionality <- as.numeric(all_data_m1$Conventionality)
+class(all_data_m1$Conventionality)
+
+conv_last35 <- all_data_m1 %>% 
+  group_by(subject) %>%   
+  slice(tail(row_number(), 35)) %>% 
+  select(Conventionality, subject) %>% 
+  as.data.frame()
+
+mean(conv_last35$Conventionality) #4.606845 - so basically the same as the overall mean
+sd(conv_last35$Conventionality) #2.965397 - also basically the same - both mean and sd go up 0.1 but it doesn't seem problematic
+```
+
+
+
+
+making a local source drawing list for calculating MSE
+```{r}
+drawing_orig <- all_data %>% select(Chain, Generation, Source_image, Drawing_ID)
+drawing_copy <- drawing_orig
+
+shift <- function(x, n) `length<-`(tail(x, +n), length(x))
+
+
+drawing_orig1 <- drawing_orig
+
+for (i in drawing_orig1){
+  drawing_orig1 <- drawing_orig1 %>% transform(Drawing_ID = shift(Drawing_ID, 1))
+  if (nrow(all_data) == 0){
+    all_data <- drawing_orig1
+  } else{
+    all_data <- rbind(all_data, drawing_orig1)
+  }
+}
+
+
+
+class(drawing_copy$Generation)
+
+drawing_copy$Chain <- as.character(drawing_copy$Chain)
+drawing_copy$Chain <- as.numeric(drawing_copy$Chain)
+
+drawing_copy$Source_image <- as.character(drawing_copy$Source_image)
+drawing_copy$Source_image <- as.numeric(drawing_copy$Source_image)
+
+drawing_orig$Chain <- as.character(drawing_orig$Chain)
+drawing_orig$Chain <- as.numeric(drawing_orig$Chain)
+
+drawing_orig$Source_image <- as.character(drawing_orig$Source_image)
+drawing_orig$Source_image <- as.numeric(drawing_orig$Source_image)
+
+
+
+for (i in 1:nrow(drawing_orig)){
+  if (drawing_copy$Generation[i] == 0){
+    drawing_orig$Drawing_ID[i] <- paste("stim_",drawing_copy$Source_image[i], sep="")
+  } else if (drawing_orig$Drawing_ID[i] == drawing_copy$Drawing_ID[i]){
+    drawing_orig$Drawing_ID[i] <- drawing_copy$Drawing_ID[i-12]
+  }
+}
+
+drawing_ids_copy_orig <- data.frame(matrix(ncol = 1, nrow = 1680))
+drawing_ids_copy_orig$Orig_ID <- drawing_orig$Drawing_ID
+drawing_ids_copy_orig$Copy_ID <- drawing_copy$Drawing_ID
+drawing_ids_copy_orig[,1] <- NULL
+
+write.csv(drawing_ids_copy_orig, "data/drawings_source_copy.csv")
+write.csv(drawing_orig, "data/drawings_source.csv")
+write.csv(drawing_copy, "data/drawings_copy.csv")
+
+```
+
+  

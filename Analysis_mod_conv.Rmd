@@ -1,0 +1,247 @@
+---
+title: "Mod conventionality"
+author: "Sophia Kleist Karlson"
+date: "20 nov 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Mod 2: conventionality
+
+
+```{r}
+
+setwd("~/Social Transmission Study/Analysis of drawings/")
+pacman::p_load(tidyverse, brms, ggplot2, stringr, dplyr)
+
+RStudio.Version()
+
+data_conv <- read_csv("data/all_data_w_conv_comp.csv") #we use all_data_w_conv_comp.csv
+data_conv$X1 <- NULL#removing the first unnecessary column
+
+```
+
+Preparing the data and checking stuff
+```{r}
+# Checking classes
+
+# Generation, complexity, conventionality and confidence should be numeric
+class(data_conv$Generation)
+class(data_conv$Confidence)
+class(data_conv$Conventionality)
+
+# Subject and Drawing ID should be character
+class(data_conv$Subject)
+class(data_conv$Drawing_ID)
+
+# Chain, condition and Source_image should be factors
+class(data_conv$Chain)
+class(data_conv$Condition)
+class(data_conv$Source_image)
+
+data_conv$Chain <- as.factor(data_conv$Chain)
+data_conv$Condition <- as.factor(data_conv$Condition)
+data_conv$Source_image <- as.factor(data_conv$Source_image)
+
+
+# Chose the variables needed for the model
+df_conventionality <- data_conv %>% select(Subject, Chain, Generation, Condition, Source_image, Conventionality)
+
+```
+
+
+some plots
+```{r}
+
+class(df_conventionality$Condition)
+class(df_conventionality$Conventionality)
+# conditions and complexity
+plot_simple_cond <- ggplot(df_conventionality, aes(Condition, Conventionality)) +
+                             geom_bar(stat = "identity")
+plot_simple_cond
+
+# generation and complexity
+plot_simple_gen <- ggplot(df_conventionality, aes(Generation, Conventionality)) +
+  geom_bar(stat = "identity")
+  #geom_smooth(method = lm)
+plot_simple_gen
+
+# generation, condition and complexity
+plot_simple_gen_cond <- ggplot(df_conventionality, aes(Generation, Conventionality, color = Condition)) +
+                             geom_smooth(method = lm)
+plot_simple_gen_cond
+
+# source image and complexity
+plot_simple_gen_source <- ggplot(df_conventionality, aes(Source_image, Conventionality)) +
+  geom_bar(stat = "identity")# +
+  #geom_errorbar(aes(ymin=(Complexity-sd(Complexity)), ymax=(Complexity-sd(Complexity))), width=.2, position=position_dodge(.9))
+plot_simple_gen_source
+
+# participant and complexity
+plot_simple_subj <- ggplot(df_conventionality, aes(Subject, Conventionality)) +
+                            geom_point()#geom_bar(stat = "identity")
+plot_simple_subj
+
+```
+
+
+Ideal model: 
+
+Complexity ~ 1 + Condition*Generation +
+  (1 + condition*generation | Source_image) +
+  (1 + condition*generation | Subject:Chain) +
+  (1 + condition*generation | Chain)
+
+
+simple model, with no bayesian fansy
+```{r}
+pacman::p_load(lmerTest, ggplot2)
+
+simple_mod_1 <- lm(Complexity ~ 1 + Condition, df_complexity)
+summary(simple_mod_1)
+
+simple_mod_2 <- lm(Complexity ~ 1 + Generation, df_complexity)
+summary(simple_mod_2)
+
+simple_mod_3 <- lm(Complexity ~ 1 + Generation*Condition, df_complexity)
+summary(simple_mod_3)
+
+
+
+simple_mod_4 <- lmerTest::lmer(Complexity ~ 1 + Condition + (1 + Condition | Subject), df_complexity)
+summary(simple_mod_4)
+
+simple_mod_5 <- lmerTest::lmer(Complexity ~ 1 + Generation + (1 + Generation | Subject), df_complexity)
+summary(simple_mod_5)
+
+
+simple_mod_6 <- lmerTest::lmer(Complexity ~ 1 + Condition + Generation + 
+                       (1 + Condition + Generation | Subject), df_complexity)
+summary(simple_mod_6)
+
+simple_mod_7 <- lmerTest::lmer(Complexity ~ 1 + Generation*Condition + (1 + Generation*Condition | Subject), df_complexity)
+summary(simple_mod_7)
+```
+
+lmer(formula, data = NULL, REML = TRUE, control = lmerControl(),
+     start = NULL, verbose = 0L, subset, weights, na.action,
+     offset, contrasts = NULL, devFunOnly = FALSE)
+
+mod_f1_2 <- lmerTest::lmer(yi ~ 1 + (1 | studyID), es_f1_2, weights = 1/vi, REML=F, control = lme4::lmerControl( check.nobs.vs.nlev ='ignore', check.nobs.vs.nRE = 'ignore'))
+summary(mod_f1_2) # We get boundary (singular) fit again. Ouch. Does it matter? WHo knows. Maybe Riccardo does.
+
+
+
+
+Modeling
+```{r}
+# Set seed so that the analysis can be re-run and give the same results
+set.seed(555)
+
+# Define the model
+complexity_mod <- bf(Complexity ~ 1 + Condition + Generation + Condition:Generation) #+ 
+                       #(1 + Condition + Generation + Condition:Generation | Subject)) #+
+                       #(1 + Condition + Generation + Condition:Generation | Source_image))
+
+
+# Figure out what priors we'll need
+get_prior(complexity_mod, family = gaussian, df_complexity)
+
+# Checking range, mean and standard deviation of complexity, to determine which family to choose and to use for beta- and intercept-priors
+range(df_complexity$Complexity)
+mean(df_complexity$Complexity)
+sd(df_complexity$Complexity)
+
+# For choosing the sd prior - GROUP BY DRAWING AND NOT SUBJECT???
+df_part <- df_complexity %>% group_by(Subject) %>% summarize(compl_mean = mean(Complexity)) #find mean complexity for each participant
+sd(df_part$compl_mean)/2 #get the standard deviation of the mean complexity for each participant. Divide this in two
+
+
+prior_complexity_mod <- c(
+  prior(normal(23964.86, 6553.69),     class = b), #mean and sd of complexity
+  #prior(lkj(1),                        class = cor),
+  prior(normal(23964.86, 6553.69),     class = Intercept), #mean and sd of complexity
+  #prior(normal(0, 1390.23),            class = sd), #mean: 0 (I expect that they might not vary at all). sd for the mean complexity for each participant = 2780.45. sigma should go from 0 (the mean of the prior) to around that -> sigma: 1390.23.
+  prior(normal(6553.69, 3276.85),      class = sigma) #mean: sd of complexity sigma: half of the sd of complexity
+)
+
+
+# Running the model to check priors
+complexity_mod0 <- brm(
+  formula = complexity_mod, 
+  prior = prior_complexity_mod,
+  data = df_complexity,
+  chains = 2,
+  cores = 2,
+  sample_prior = "only"
+)
+
+
+# Prior predictive check
+pp_check(complexity_mod0, nsamples = 100) # 
+
+
+# The actual model:
+complexity_mod1 <- brm(
+  formula = complexity_mod, 
+  prior = prior_complexity_mod,
+  data = df_complexity,
+  chains = 2,
+  cores = 2,
+  sample_prior = T,
+  iter = 4000,
+  control = list(adapt_delta=0.99, max_treedepth=20)
+)
+
+# Posterior predictive check
+pp_check(complexity_mod1, nsamples = 100)
+
+
+
+# Model summary
+summary(complexity_mod1) # Warnings? Suspicious Rhat activity? Bad priors?
+
+# Plot the model to get trace plots
+plot(complexity_mod1)
+
+
+# Rank trace plots
+mcmc_rank_overlay(complexity_mod1, 
+                  pars = c("b_Intercept", "b_Condition2", "b_Condition3", "b_Condition4")) + 
+  theme_classic()
+
+mcmc_rank_overlay(complexity_mod1, 
+                  pars = c("b_Generation", "b_Condition2:Generation", "b_Condition3:Generation", "b_Condition4:Generation")) + 
+  theme_classic()
+
+mcmc_rank_overlay(complexity_mod1, 
+                  pars = c("sigma")) + 
+  theme_classic()
+
+
+
+
+hypothesis(complexity_mod1,"Condition2 = Condition3") # Is condition 2 more complex than condition 3?
+hypothesis(complexity_mod1,"Condition3 = Condition4")
+hypothesis(complexity_mod1,"Condition2 = Condition4")
+
+hypothesis(complexity_mod1,"Intercept > 0")
+hypothesis(complexity_mod1,"Generation < 0")
+hypothesis(complexity_mod1,"Condition2:Generation < 0")
+hypothesis(complexity_mod1,"Condition3:Generation < 0")
+hypothesis(complexity_mod1,"Condition4:Generation < 0")
+
+plot(hypothesis(complexity_mod1, "")) # After trying different hypotheses, this turned out to be the best
+
+
+# Plot conditional effects
+conditional_effects(complexity_mod1)
+```
+
+
+
+
